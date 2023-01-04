@@ -1,0 +1,53 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/awais/my_ros_ws/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/awais/my_ros_ws/src/EXPROB_Assgnment_02/aruco_ros/aruco/include/**",
+        "/home/awais/my_ros_ws/src/EXPROB_Assgnment_02/aruco_ros/aruco_ros/include/**",
+        "/home/awais/my_ros_ws/src/beginner_tutorials/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_planners/chomp/chomp_motion_planner/include/**",
+        "/home/awais/my_ros_ws/src/computervisionformobilerobots/include/**",
+        "/home/awais/my_ros_ws/src/vision_opencv/cv_bridge/include/**",
+        "/home/awais/my_ros_ws/src/vision_opencv/image_geometry/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_planners/chomp/chomp_interface/include/**",
+        "/home/awais/my_ros_ws/src/moveit_resources/prbt_ikfast_manipulator_plugin/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_ros/benchmarks/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_plugins/moveit_ros_control_interface/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_ros/move_group/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_ros/occupancy_map_monitor/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_ros/robot_interaction/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_ros/moveit_servo/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_setup_assistant/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_plugins/moveit_simple_controller_manager/include/**",
+        "/home/awais/my_ros_ws/src/my_actions/include/**",
+        "/home/awais/my_ros_ws/src/my_first_package/include/**",
+        "/home/awais/my_ros_ws/src/my_rosplan_interface/include/**",
+        "/home/awais/my_ros_ws/src/my_srv/include/**",
+        "/home/awais/my_ros_ws/src/occupancy_grid_utils/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_planners/pilz_industrial_motion_planner/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_planners/pilz_industrial_motion_planner_testutils/include/**",
+        "/home/awais/my_ros_ws/src/rosplan_demos/rosplan_demos_interfaces/rosplan_interface_mapping/include/**",
+        "/home/awais/my_ros_ws/src/rosplan_demos/rosplan_demos_interfaces/rosplan_interface_movebase/include/**",
+        "/home/awais/my_ros_ws/src/ROSPlan/rosplan_knowledge_base/include/**",
+        "/home/awais/my_ros_ws/src/ROSPlan/rosplan_planning_system/include/**",
+        "/home/awais/my_ros_ws/src/moveit/moveit_planners/sbpl/core/sbpl_interface/include/**",
+        "/home/awais/my_ros_ws/src/srdfdom/include/**",
+        "/home/awais/my_ros_ws/src/survailence_robot/include/**",
+        "/home/awais/my_ros_ws/src/turtlebot_controller/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
