@@ -55,5 +55,7 @@
    
    <node pkg="image_view" type="image_view" name="image_view" args = "/image:=/marker_publisher/result"/>
    
+   <node pkg="aruco_ros" type="marker_client" name="marker_client"/>
+   
 
 </launch>

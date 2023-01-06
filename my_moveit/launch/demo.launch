@@ -17,6 +17,19 @@
 
   <!-- Set execution mode for fake execution controllers -->
   <arg name="execution_type" default="interpolate" />
+  
+      <arg name="paused" default="false"/>
+    <arg name="gazebo_gui" default="true"/>
+    <!-- By default, use the urdf location provided from the package -->
+  <arg name="urdf_path" default="$(find my_moveit)/urdf/robot.urdf"/>
+  
+    <!-- launch the gazebo simulator and spawn the robot -->
+  <include file="$(find my_moveit)/launch/demo_gazebo.launch" >
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gazebo_gui" value="$(arg gazebo_gui)"/>
+    <arg name="urdf_path" value="$(arg urdf_path)"/>
+  </include>
+  
 
   <!--
   By default, hide joint_state_publisher's GUI

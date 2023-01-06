@@ -339,15 +339,15 @@
         </inertial>
 
         <collision>
-            <origin rpy="0 0 0" xyz="0 0 0" />
+            <origin rpy="0 0 0" xyz="0 0 0.30" />
             <geometry>
-                <cylinder length="0.51" radius="0.04" />
+                <cylinder length="0.70" radius="0.04" />
             </geometry>
         </collision>
         <visual>
-            <origin rpy="0 0 0" xyz="0 0 0" />
+            <origin rpy="0 0 0" xyz="0 0 0.30" />
             <geometry>
-                <cylinder length="0.51" radius="0.04" />
+                <cylinder length="0.70" radius="0.04" />
             </geometry>
             <material name="red" />
         </visual>
@@ -368,15 +368,15 @@
         </inertial>
 
         <collision>
-            <origin rpy="0 0 0" xyz="0 0 0.25" />
+            <origin rpy="0 0 0" xyz="0 0 0.30" />
             <geometry>
-                <cylinder length="0.5" radius="0.04" />
+                <cylinder length="0.6" radius="0.04" />
             </geometry>
         </collision>
         <visual>
-            <origin rpy="0 0 0" xyz="0 0 0.25" />
+            <origin rpy="0 0 0" xyz="0 0 0.30" />
             <geometry>
-                <cylinder length="0.5" radius="0.04" />
+                <cylinder length="0.6" radius="0.04" />
             </geometry>
             <material name="red" />
         </visual>
@@ -384,7 +384,7 @@
     <joint name="arm_joint_02" type="revolute">
         <axis xyz="1 0 0" />
         <limit effort="1000.0" lower="-1.8" upper="1.8" velocity="0.2" />
-        <origin rpy="0 0 0" xyz="0 0 0.25" />
+        <origin rpy="0 0 0" xyz="0 0 0.65" />
         <parent link="arm_link_01" />
         <child link="arm_link_02" />
     </joint>
@@ -413,7 +413,7 @@
     <joint name="arm_joint_03" type="revolute">
         <axis xyz="1 0 0" />
         <limit effort="1000.0" lower="-1.8" upper="1.8" velocity="0.2" />
-        <origin rpy="0 0 0" xyz="0 0 0.50" />
+        <origin rpy="0 0 0" xyz="0 0 0.60" />
         <parent link="arm_link_02" />
         <child link="arm_link_03" />
     </joint>
