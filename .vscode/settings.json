@@ -4,5 +4,11 @@
         "/opt/ros/noetic/lib/python3/dist-packages",
         "/home/awais/my_ros_ws/src/armor_py_api/scripts/armor_api/",
         "/home/awais/my_ros_ws/src/armor_py_api/scripts/armor_api/scripts"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/awais/my_ros_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/awais/my_ros_ws/src/armor_py_api/scripts/armor_api/",
+        "/home/awais/my_ros_ws/src/armor_py_api/scripts/armor_api/scripts"
     ]
 }

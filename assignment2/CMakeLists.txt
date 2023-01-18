@@ -10,6 +10,7 @@ project(assignment2)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  actionlib_msgs
   message_generation
 )
 
@@ -20,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -50,23 +51,35 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
    FILES
    RoomConnection.msg
+   Point.msg
  )
 
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
    RoomInformation.srv
+   GetPose.srv
+   SetPose.srv
+   GetBattery.srv
+   SetBattery.srv
  )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
+ add_action_files(
+   FILES
 #   Action1.action
 #   Action2.action
-# )
+    Control.action
+    Plan.action
+)
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages()
+generate_messages(
+   DEPENDENCIES
+   std_msgs
+   actionlib_msgs
+
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -102,6 +115,7 @@ catkin_package(
 #  LIBRARIES assignment2
 #  CATKIN_DEPENDS roscpp rospy
 #  DEPENDS system_lib
+   CATKIN_DEPENDS message_runtime
 )
 
 ###########
@@ -154,10 +168,17 @@ add_dependencies(marker_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPO
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# catkin_install_python(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+## Define runnables.
+catkin_install_python(
+  PROGRAMS
+    scripts/planner.py
+    scripts/controller.py
+    scripts/robot_states.py
+    scripts/behaviour.py
+    scripts/state_machine.py
+  DESTINATION 
+    ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
