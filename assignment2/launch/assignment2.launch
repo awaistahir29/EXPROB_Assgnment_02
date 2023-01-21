@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 	
-	 <remap from="/m2wr/laser/scan" to="scan"/> 
+	 <remap from="/my_robot/laser/scan" to="scan"/> 
 	
 	  <!-- these are the arguments you can pass this launch file, for example paused:=true -->
   <arg name="paused" default="false"/>
@@ -13,7 +13,7 @@
   <arg name="world" default="assignment_world" />
   
   <!-- By default, use the urdf location provided from the package -->
-  <arg name="urdf_path" default="$(find my_moveit)/urdf/robot.urdf"/>
+  <arg name="urdf_path" default="$(find assignment2)/urdf/my_robot.urdf"/>
   
   <!-- Note that 'headless' is currently non-functional.  See gazebo_ros_pkgs issue #491 (-r arg does not disable
        rendering, but instead enables recording). The arg definition has been left here to prevent breaking downstream
@@ -42,13 +42,13 @@
 
   
   <!-- launch the gazebo simulator and spawn the robot -->
-  <include file="$(find my_moveit)/launch/demo_gazebo.launch" >
+  <include file="$(find new_moveit)/launch/demo_gazebo.launch" >
     <arg name="paused" value="$(arg paused)"/>
     <arg name="gazebo_gui" value="$(arg gazebo_gui)"/>
     <arg name="urdf_path" value="$(arg urdf_path)"/>
   </include>
   	<param name="use_sim_time" value="true"/>
-  	<!--
+  	
       <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping">
 	  <param name="base_frame" value="base_link"/>
       <param name="map_update_interval" value="5.0"/>
@@ -92,7 +92,7 @@
   </node>
   
  
-	-->
+
    <node name="marker_server" pkg="assignment2" type="marker_server" />
   
   
