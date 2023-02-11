@@ -76,10 +76,10 @@
         <plugin filename="libgazebo_ros_skid_steer_drive.so" name="skid_steer_drive_controller">
             <updateRate>100.0</updateRate>
             <robotNamespace>/</robotNamespace>
-            <leftFrontJoint>joint_frontleft_wheel</leftFrontJoint>
-            <rightFrontJoint>joint_frontright_wheel</rightFrontJoint>
-            <leftRearJoint>joint_left_wheel</leftRearJoint>
-            <rightRearJoint>joint_right_wheel</rightRearJoint>
+            <leftFrontJoint>joint_frontright_wheel</leftFrontJoint>
+            <rightFrontJoint>joint_frontleft_wheel</rightFrontJoint>
+            <leftRearJoint>joint_right_wheel</leftRearJoint>
+            <rightRearJoint>joint_left_wheel</rightRearJoint>
             <wheelSeparation>0.4</wheelSeparation>
             <wheelDiameter>0.215</wheelDiameter>
             <robotBaseFrame>base_link</robotBaseFrame>
@@ -327,7 +327,7 @@
         </collision>
     </link>
     <joint name="joint_laser" type="fixed">
-        <origin rpy="0 0 0" xyz="0.15 0 0.05" />
+        <origin rpy="0 0 0" xyz="0.15 0 0.20" />
         <parent link="base_link" />
         <child link="laser" />
     </joint>

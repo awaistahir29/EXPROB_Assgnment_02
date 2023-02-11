@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   actionlib_msgs
   message_generation
+  std_msgs
+  sensor_msgs
+  moveit_ros_planning_interface
 )
 
 ## System dependencies are found with CMake's conventions
@@ -62,6 +65,7 @@ add_service_files(
    SetPose.srv
    GetBattery.srv
    SetBattery.srv
+   Marker.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -143,6 +147,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
  add_executable(marker_server src/marker_server.cpp)
+ add_executable(mymoveit_node1 src/my_moveit.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,9 +159,13 @@ include_directories(
 ## same as for the library above
 add_dependencies(marker_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+
 ## Specify libraries to link a library or executable target against
  target_link_libraries(marker_server
    ${catkin_LIBRARIES}
+ )
+ target_link_libraries(mymoveit_node1 
+ 	${catkin_LIBRARIES}
  )
 
 #############
