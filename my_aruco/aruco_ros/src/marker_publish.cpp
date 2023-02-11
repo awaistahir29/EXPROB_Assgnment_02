@@ -43,6 +43,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 #include <aruco_msgs/id.h>
+#include <std_msgs/Int32.h>
 
 class ArucoMarkerPublisher
 {
@@ -78,7 +79,7 @@ public:
     image_pub_ = it_.advertise("result", 1);
     debug_pub_ = it_.advertise("debug", 1);
     
-    pub = nh_.advertise<aruco_msgs::id>("/id", 1);
+    pub = nh_.advertise<std_msgs::Int32>("/image_id", 1);
     
     nh_.param<bool>("use_camera_info", useCamInfo_, false);
     camParam_ = aruco::CameraParameters();
@@ -88,6 +89,7 @@ public:
   {
     bool publishImage = image_pub_.getNumSubscribers() > 0;
     bool publishDebug = debug_pub_.getNumSubscribers() > 0;
+    std_msgs::Int32 image_id;
 
     ros::Time curr_stamp = msg->header.stamp;
     cv_bridge::CvImagePtr cv_ptr;
@@ -110,8 +112,8 @@ public:
         {
           std::cout << markers_.at(i).id << " ";
           
-          n.id = markers_.at(i).id;
-          pub.publish(n);
+          image_id.data = markers_.at(i).id;
+          pub.publish(image_id);
           
         }
         std::cout << std::endl;

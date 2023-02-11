@@ -18,6 +18,7 @@ from assignment2.msg import Point
 from assignment2.srv import RoomInformation
 from std_msgs.msg import Int32
 from std_srvs.srv import SetBool
+from aruco_msgs.msg import id
 #include <assignment2/Marker.h>
 from assignment2.srv import Marker
 
@@ -253,7 +254,7 @@ def urgencycheck():
     i = 0
     for string in urgent:
         urgentList.append(re.search('#' + '(.+?)'+'>', string).group(1))
-        print('The urgent list is: ', urgentList)
+        print('The urgent lisdatat is: ', urgentList)
         for string in urgentList:
             if urgentList[i] == 'R1' or 'R2' or 'R3' or 'R4':
                 print("Urgency Occured")
@@ -309,7 +310,7 @@ def marker_id_callback(data):
         rooms_name.append(room_info.room)
         log_msg = 'Semantic map updated, room '+ room_info.room + ' detected'
         rospy.loginfo(anm.tag_log(log_msg, LOG_TAG))
-        tm.add_room(room_info.room)
+        #tm.add_room(room_info.room)
 
         rooms_center.append([room_info.x, room_info.y])
         log_msg = 'Center position is: [%f, %f]' % (room_info.x, room_info.y)
@@ -320,11 +321,11 @@ def marker_id_callback(data):
             rooms_doors.append(room_info.connections[i].through_door)
             log_msg = 'Room ' + room_info.room + ' is connected to ' + room_info.connections[i].connected_to + ' through door ' + room_info.connections[i].through_door
             rospy.loginfo(anm.tag_log(log_msg, LOG_TAG))
-            tm.add_door(room_info.connections[i].through_door)
-            tm.assign_doors_to_room(room_info.room, room_info.connections[i].through_door)
+            #tm.add_door(room_info.connections[i].through_door)
+            #tm.assign_doors_to_room(room_info.room, room_info.connections[i].through_door)
 
-        tm.disjoint_individuals()
-        tm.add_last_visit_time(room_info.room, str(room_info.visit_time))
+        #tm.disjoint_individuals()
+        #tm.add_last_visit_time(room_info.room, str(room_info.visit_time))
 
 
 
@@ -383,7 +384,7 @@ def set_arm_movement_state(arm_movement_state):
                 if resp.message == 'down_right':
                     print("DOWN_RIGHT MOVEMENT SCCCEED\n")
                     resp = service(4)
-                    rospy.sleep(15)
+                    rospy.sleep(25)
                     if resp.message == 'back_left':
                         print("BACK_LEFT MOVEMENT SCCCEED\n")
                         resp = service(5)
@@ -391,6 +392,7 @@ def set_arm_movement_state(arm_movement_state):
                         if resp.message == 'initial':
                             print("Initial MOVEMENT SCCCEED\n")
                             rospy.sleep(5)
+                            return True
             
 
     except rospy.ServiceException as e:
@@ -428,36 +430,17 @@ class Map_Receiving(smach.State):
         """
         global mutex
         global rooms_id
-        set_arm_movement_state(True)
-        while not rospy.is_shutdown():  # Wait for stimulus from the other nodes of the architecture.
-            mutex.acquire()
-            try:
-                if len(rooms_id) > 6:
-                    return 'loaded'
-            finally:
-                mutex.release()
-            rospy.sleep(LOOP_TIME)
-
-class ExploreRoom(smach.State):
-    def __init__(self):
-        # initialisation function, it should not wait
-        smach.State.__init__(self, 
-                             outcomes=['explored'])
-        
-        self.client1 = ArmorClient('example', 'ontoRef')
-
-    def execute(self, userdata):
-        # function called when exiting from the node, it can be blccking
-            global mutex
-            global tm
-            
-            while not rospy.is_shutdown():
+        check =  set_arm_movement_state(True)
+        if(check == True):
+            while not rospy.is_shutdown():  # Wait for stimulus from the other nodes of the architecture.
                 mutex.acquire()
                 try:
-                    #set_arm_movement_state(True)
-                    return 'explored'
+                    print("The number of rooms are", len(rooms_id)) 
+                    if len(rooms_id) > 6:
+                        return 'loaded'
                 finally:
                     mutex.release()
+                rospy.sleep(LOOP_TIME)
 
 # define state Locked
 class Normal(smach.State):
@@ -496,6 +479,29 @@ class Normal(smach.State):
             finally:
                 mutex.release()
             rospy.sleep(LOOP_TIME)
+
+class ExploreRoom(smach.State):
+    def __init__(self):
+        # initialisation function, it should not wait
+        smach.State.__init__(self, 
+                             outcomes=['explored'])
+        
+        self.client1 = ArmorClient('example', 'ontoRef')
+
+    def execute(self, userdata):
+        # function called when exiting from the node, it can be blccking
+            global mutex
+            global tm
+            
+            while not rospy.is_shutdown():
+                mutex.acquire()
+                try:
+                    #set_arm_movement_state(True)
+                    return 'explored'
+                finally:
+                    mutex.release()
+
+
 
 
 # define state Locked
@@ -588,7 +594,7 @@ def main():
         mutex = mutex
 
     # Subscribe image id to get rooms information
-    rospy.Subscriber('/id', Int32, marker_id_callback)
+    rospy.Subscriber('/image_id', Int32, marker_id_callback)
 
     # Create a SMACH state machine
     sm = smach.StateMachine(outcomes=['container_interface'])
