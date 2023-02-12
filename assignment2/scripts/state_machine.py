@@ -1,4 +1,17 @@
 #!/usr/bin/env python3
+"""
+.. module:: finite_state_machine
+:platform: Unix
+:synopsis: Python module for the finite_state_machine
+
+.. moduleauthor:: Awais Tahir s5174335@studenti.unige.it
+
+This node implements State Mmachine
+
+This script handles the main behavior of a robot by using a finite state machine. It waits for the ontology (map) to be built, and then enters a loop that transitions between three states: move_in_corridor, visitroom, and charging.
+
+In the move_in_corridor state, the robot moves randomly in the corridors and waits for a certain amount of time if the battery is not low and there are no urgent rooms to visit. If the battery is low, the robot transitions to the charging state, in which it stays in room E until the battery is charged. If there is an urgent room to visit while the battery is charged, the robot transitions to the visitroom state and stays there for a certain amount of time.
+"""
 
 import rospy
 import smach
