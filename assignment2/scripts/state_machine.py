@@ -7,20 +7,16 @@ import time
 import random
 import re
 
-from survailence_robot.helper import TopologicalMap
+from assignment2.helper import TopologicalMap
 from armor_api.armor_client import ArmorClient
-
-from survailence_robot.srv import GetBattery, SetBattery
-from survailence_robot import architecture_name_mapper as anm
-
+from assignment2.srv import GetBattery, SetBattery
+from assignment2 import architecture_name_mapper as anm
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from assignment2.msg import Point
 from assignment2.srv import RoomInformation
 from std_msgs.msg import Int32
-from std_srvs.srv import SetBool
-from aruco_msgs.msg import id
-#include <assignment2/Marker.h>
 from assignment2.srv import Marker
+import actionlib
 
 # Import mutex to manage synchronization among ROS-based threads (i.e., node loop and subscribers)
 from threading import Lock
@@ -37,7 +33,6 @@ rooms_name = []
 rooms_center = []
 rooms_connections = []
 rooms_doors = []
-#urgency = False
 tm = None
 stayinroomtime = 0.5
 urgentflag = 1
@@ -46,6 +41,8 @@ batflag = 1
 get_battery_level = {}
 newLevel = 0
 resp = 0
+
+client_mvbs = actionlib.SimpleActionClient('move_base',MoveBaseAction)
 
 def _set_battery_level_client(battery_level):
     """
@@ -68,6 +65,9 @@ def _set_battery_level_client(battery_level):
         rospy.logerr(anm.tag_log(log_msg, LOG_TAG))
 
 def _get_battery_level_client():
+    """
+    Getting the Battery Level Service
+    """
     global get_battery_level
     global resp
     rospy.wait_for_service(anm.SERVER_GET_BATTERY)
@@ -84,6 +84,9 @@ def _get_battery_level_client():
         rospy.logerr(anm.tag_log(log_msg, LOG_TAG))
 
 def cutBattery():
+    """
+    Cutting the Battery Level Service
+    """
     global newLevel
     global resp
     resp = _get_battery_level_client()
@@ -121,9 +124,6 @@ def moveto(location):
 
     is_In = client.query.objectprop_b2_ind('isIn', 'Robot1')
     oldlocation=findindividual(is_In)
-    #can_Reach=client.query.objectprop_b2_ind('canReach', 'Robot1')
-    #reachable_location=findindividual(can_Reach)
-    #client.query.objectprop_b2_ind('canReach', 'Robot1')
     list5 = client.query.objectprop_b2_ind('canReach', 'Robot1')
     new_list1 = []
     for string in list5:
@@ -222,50 +222,6 @@ def urgentupdate():
     else:
         return tobetrturned
 
-def urgency():
-    client = ArmorClient('example', 'ontoRef')
-    client.call('REASON','','',[''])
-
-    list5 =client.query.objectprop_b2_ind('canReach', 'Robot1')
-    new_list1 = []
-    for string in list5:
-        new_list1.append(re.search('#' + '(.+?)'+'>', string).group(1))
-    print('I can reach: ', new_list1)
-
-    urgent = client.query.ind_b2_class('URGENT')
-    urgentList = []
-    i = 0
-    for string in urgent:
-        urgentList.append(re.search('#' + '(.+?)'+'>', string).group(1))
-        print('The urgent list is: ', urgentList)
-        for string in urgentList:
-            if urgentList[i] == 'R1' or 'R2' or 'R3' or 'R4':
-                if new_list1[i] == 'R1' or 'R2' or 'R3' or 'R4':
-                    print("Urgency Occured")
-                    return new_list1[i]
-                else:
-                    i += 1
-
-def urgencycheck():
-    client = ArmorClient('example', 'ontoRef')
-    client.call('REASON','','',[''])
-    urgent = client.query.ind_b2_class('URGENT')
-    urgentList = []
-    i = 0
-    for string in urgent:
-        urgentList.append(re.search('#' + '(.+?)'+'>', string).group(1))
-        print('The urgent lisdatat is: ', urgentList)
-        for string in urgentList:
-            if urgentList[i] == 'R1' or 'R2' or 'R3' or 'R4':
-                print("Urgency Occured")
-                return True
-            else:
-                i += 1
-
-
-def user_action():
-    return random.choice(['discharged','timeup','charged','loaded','relaxed'])
-
 def get_room_info(room_id):
     """
         Server client for ``marker_server``, gets information for each room using ``room_info`` service
@@ -321,33 +277,6 @@ def marker_id_callback(data):
             rooms_doors.append(room_info.connections[i].through_door)
             log_msg = 'Room ' + room_info.room + ' is connected to ' + room_info.connections[i].connected_to + ' through door ' + room_info.connections[i].through_door
             rospy.loginfo(anm.tag_log(log_msg, LOG_TAG))
-            #tm.add_door(room_info.connections[i].through_door)
-            #tm.assign_doors_to_room(room_info.room, room_info.connections[i].through_door)
-
-        #tm.disjoint_individuals()
-        #tm.add_last_visit_time(room_info.room, str(room_info.visit_time))
-
-
-
-def move_to_pose(pose):
-    """
-        Action client function for ``move_base`` node, gets a pose as an argument and sends it as 
-        ``MoveBaseGoal.msg`` to the action server
-        Args:
-            pose(Point)
-        
-        Returns:
-            result(MoveBaseResult.msg)
-    """
-    client = actionlib.SimpleActionClient('move_base',MoveBaseAction)
-    goal = MoveBaseGoal()
-    goal.target_pose.header.frame_id = "map"
-    goal.target_pose.header.stamp = rospy.Time.now()
-    goal.target_pose.pose.position.x = pose.x
-    goal.target_pose.pose.position.y = pose.y
-    goal.target_pose.pose.orientation.w = 1.0
-    client.wait_for_server()
-    client.send_goal(goal)
 
 def get_room_pose(room):
     """
@@ -366,6 +295,13 @@ def get_room_pose(room):
     return room_pose
 
 def set_arm_movement_state(arm_movement_state):
+    """
+    Detects the markers by sending requests after appropriate time
+    Args:
+        Boolean: True 
+    Returns:
+        Boolean: True
+    """
     rospy.wait_for_service('/move_arm')
     try:
         log_msg = 'Setting robot arm movement state to ' + str(arm_movement_state)
@@ -399,24 +335,6 @@ def set_arm_movement_state(arm_movement_state):
         log_msg = f'Server can not set current arm movement state: {e}'
         rospy.logerr(anm.tag_log(log_msg, LOG_TAG))
 
-def set_base_movement_state(base_movement_state):
-    """
-        Service client function for ``/base_movement_state``. Updates the current robot base movement state stored 
-        in ``robot-states`` node
-        Args:   
-            base_movement_state(bool)
-    """
-    rospy.wait_for_service(anm.SERVER_SET_BASE_MOVEMENT_STATE)
-    try:
-        log_msg = 'Setting robot base movement state to ' + str(base_movement_state)
-        rospy.loginfo(anm.tag_log(log_msg, LOG_TAG))
-        service = rospy.ServiceProxy(anm.SERVER_SET_BASE_MOVEMENT_STATE, SetBaseMovementState)
-        service(base_movement_state)  
-    except rospy.ServiceException as e:
-        log_msg = f'Server cannot set current base movement state: {e}'
-        rospy.logerr(anm.tag_log(log_msg, LOG_TAG))
-
-
 # define state Unlocked
 class Map_Receiving(smach.State):
     def __init__(self):
@@ -428,6 +346,8 @@ class Map_Receiving(smach.State):
         """
         Implements the execution of the tasks while this state gets active.
         """
+        global tm
+        tm = TopologicalMap()
         global mutex
         global rooms_id
         check =  set_arm_movement_state(True)
@@ -444,6 +364,11 @@ class Map_Receiving(smach.State):
 
 # define state Locked
 class Normal(smach.State):
+## The Normal class.The robots keeps moving between C1 and C2 for infinit time, the robots keep cheking the 
+# state of the battery, if the battery is low the robot goes to CHARGING state
+# trough the transition tired. if the  battery is not low, the robot cheks if there is an urgent room by quering the
+# individuals of the class urgent. If there is an urgent room the robot goes to URGENT state through the transition
+# timeup.
     def __init__(self):
         smach.State.__init__(self, 
                              outcomes=['discharged','timeup','charged','loaded','relaxed'])
@@ -455,63 +380,57 @@ class Normal(smach.State):
         """
         Implements the execution of the tasks while this state gets active.
         """
-        global mutex
-        global tm
-        now = rospy.get_rostime()
-        [target_room, battery_low] = tm.update_ontology(now)
-        target_room_pose = get_room_pose(target_room)
-        set_base_movement_state(True)
-        move_to_pose(target_room_pose)
-        while not rospy.is_shutdown():  # Wait for stimulus from the other nodes of the architecture.
-            mutex.acquire()
-            try:
-                now = rospy.get_rostime()
-                [next_target_room, battery_low] = tm.update_ontology(now)
-                log_msg = 'target room: ' + target_room
-                rospy.loginfo(anm.tag_log(log_msg, LOG_TAG))
-                if battery_low:
-                    return 'discharged'
-                else:
-                    target_reached = check_target_reached(target_room_pose)
-                    if target_reached:
-                        set_base_movement_state(False)
-                        return 'timeup'
-            finally:
-                mutex.release()
-            rospy.sleep(LOOP_TIME)
-
-class ExploreRoom(smach.State):
-    def __init__(self):
-        # initialisation function, it should not wait
-        smach.State.__init__(self, 
-                             outcomes=['explored'])
-        
-        self.client1 = ArmorClient('example', 'ontoRef')
-
-    def execute(self, userdata):
-        # function called when exiting from the node, it can be blccking
-            global mutex
-            global tm
-            
-            while not rospy.is_shutdown():
-                mutex.acquire()
-                try:
-                    #set_arm_movement_state(True)
-                    return 'explored'
-                finally:
-                    mutex.release()
-
-
-
+        global urgentflag
+        global newLevel
+        cutBattery()
+        urgentupdate()
+        print('The Remaining Battery is: ', newLevel)
+        if newLevel <= 5:
+            return 'discharged'
+        if urgentflag == 0:
+            print("Urgency Occured")
+            return 'timeup'
+        else:
+            if random.randint(1, 2)==1:
+                moveto('C1')
+                client_mvbs.wait_for_server()
+                goal = MoveBaseGoal()
+                goal.target_pose.header.frame_id = "map"
+                goal.target_pose.header.stamp = rospy.Time.now()
+                goal.target_pose.pose.position.x = -1.5
+                goal.target_pose.pose.position.y = 0.0
+                goal.target_pose.pose.orientation.w = 1.0
+                result = client_mvbs.send_goal_and_wait(goal)
+                set_arm_movement_state(True)
+                rospy.sleep(stayinroomtime)
+            else:
+                moveto('C2')
+                client_mvbs.wait_for_server()
+                goal = MoveBaseGoal()
+                goal.target_pose.header.frame_id = "map"
+                goal.target_pose.header.stamp = rospy.Time.now()
+                goal.target_pose.pose.position.x = 3.5
+                goal.target_pose.pose.position.y = 0.0
+                goal.target_pose.pose.orientation.w = 1.0
+                result = client_mvbs.send_goal_and_wait(goal)
+                set_arm_movement_state(True)
+                rospy.sleep(stayinroomtime)
+            return 'charged'
 
 # define state Locked
 class Urgent(smach.State):
+## The visting_urgent class.First, the robots checks if the battery is low goes to CHARGING state, else it checkes it the
+# urgent room is reacheable by quering the object properties of the robot canReach, if the room can be reached it visit it
+# and return back to the  MOVING_IN_CORRIDORS trough the transition visited. If the urgent room is not reacheable it goes 
+# to MOVING_IN_CORRIDORS state through the transition not_reached, in this case the robot will change the corridors and 
+# visit it again.
     def __init__(self):
+        """! A method of the class visiting_urgent
+           @param userdata
+           @return  one of its outcomes
+        """
         smach.State.__init__(self, 
                              outcomes=['relaxed','discharged','timeup'])
-                            # input_keys=['locked_counter_in'],
-                            # output_keys=['locked_counter_out'])
-        #self.sensor_input = 0
         self.rate = rospy.Rate(200)  # Loop at 200 Hz
         self.client1 = ArmorClient('example', 'ontoRef')
 
@@ -520,39 +439,76 @@ class Urgent(smach.State):
         """
         Implements the execution of the tasks while this state gets active.
         """
-        global mutex
-        global tm
-        now = rospy.get_rostime()
-        [target_room, battery_low] = tm.update_ontology(now)
-        target_room_pose = get_room_pose(target_room)
-        set_base_movement_state(True)
-        move_to_pose(target_room_pose)
-        while not rospy.is_shutdown():  # Wait for stimulus from the other nodes of the architecture.
-            mutex.acquire()
-            try:
-                now = rospy.get_rostime()
-                [next_target_room, battery_low] = tm.update_ontology(now)
-                log_msg = 'target room: ' + target_room
-                rospy.loginfo(anm.tag_log(log_msg, LOG_TAG))
-                if battery_low:
-                    return 'discharged'
-                else:
-                    #target_reached = check_target_reached(target_room_pose)
-                    #if target_reached:
-                    #    set_base_movement_state(False)
-                    return 'relaxed'
-            finally:
-                mutex.release()
-            rospy.sleep(LOOP_TIME)
+         # simulate that we have to get 5 data samples to compute the outcome
+        global batflag
+        global urgentflag
+        global newLevel
+        cutBattery()
+        print('The Remaining Battery is: ', newLevel)
+        if newLevel <= 5:
+            return 'discharged'
+        client = ArmorClient("example", "ontoRef")
+        urgentupdate()
+        rospy.sleep(sleeptime)
+        if urgentflag == 1:
+            return 'relaxed'
+        else:
+            The_urgnet_room=urgentupdate()
+            moveto(The_urgnet_room)
+            if The_urgnet_room == 'R1':
+                client_mvbs.wait_for_server()
+                goal = MoveBaseGoal()
+                goal.target_pose.header.frame_id = "map"
+                goal.target_pose.header.stamp = rospy.Time.now()
+                goal.target_pose.pose.position.x = -7.0
+                goal.target_pose.pose.position.y = 3.0
+                goal.target_pose.pose.orientation.w = 1.0
+                result = client_mvbs.send_goal_and_wait(goal)
+                set_arm_movement_state(True)
+            elif The_urgnet_room == 'R2':
+                client_mvbs.wait_for_server()
+                goal = MoveBaseGoal()
+                goal.target_pose.header.frame_id = "map"
+                goal.target_pose.header.stamp = rospy.Time.now()
+                goal.target_pose.pose.position.x = -7.0
+                goal.target_pose.pose.position.y = -4.0
+                goal.target_pose.pose.orientation.w = 1.0
+                result = client_mvbs.send_goal_and_wait(goal)
+                set_arm_movement_state(True)
+            elif The_urgnet_room == 'R3':
+                client_mvbs.wait_for_server()
+                goal = MoveBaseGoal()
+                goal.target_pose.header.frame_id = "map"
+                goal.target_pose.header.stamp = rospy.Time.now()
+                goal.target_pose.pose.position.x = 9.0
+                goal.target_pose.pose.position.y = 3.0
+                goal.target_pose.pose.orientation.w = 1.0
+                result = client_mvbs.send_goal_and_wait(goal)
+                set_arm_movement_state(True)
+            elif The_urgnet_room == 'R4':
+                client_mvbs.wait_for_server()
+                goal = MoveBaseGoal()
+                goal.target_pose.header.frame_id = "map"
+                goal.target_pose.header.stamp = rospy.Time.now()
+                goal.target_pose.pose.position.x = 9.0
+                goal.target_pose.pose.position.y = -4.0
+                goal.target_pose.pose.orientation.w = 1.0
+                result = client_mvbs.send_goal_and_wait(goal)
+                set_arm_movement_state(True)
+
+            rospy.sleep(stayinroomtime)
+            return 'timeup'
 
 # define state Locked
 class Battery_Low(smach.State):
+    """
+    Defines the state when robot has reached the charger and chargers battery after some time using
+    ``set_battery_level(battery_level)`` function and then returns ``charged`` transition.
+    """
     def __init__(self):
         smach.State.__init__(self, 
                              outcomes=['charged','discharged'])
-                             #input_keys=['locked_counter_in'],
-                             #output_keys=['locked_counter_out'])
-        #self.sensor_input = 0
+
         self.client1 = ArmorClient('example', 'ontoRef')
         self.rate = rospy.Rate(200)  # Loop at 200 Hz
 
@@ -561,29 +517,29 @@ class Battery_Low(smach.State):
         """
         Implements the execution of the tasks while this state gets active.
         """
-        global mutex
-        global tm
-        now = rospy.get_rostime()
-        tm.update_ontology(now)
-        target_room_pose = get_room_pose('E')
-        set_base_movement_state(True)
-        move_to_pose(target_room_pose)
-        while not rospy.is_shutdown():  # Wait for stimulus from the other nodes of the architecture.
-            mutex.acquire()
-            try:
-                now = rospy.get_rostime()
-                tm.update_ontology(now)
-                target_reached = check_target_reached(target_room_pose)
-                if target_reached:
-                    set_base_movement_state(False)
-                    return 'target_reached'              
-
-            finally:
-                mutex.release()
-            rospy.sleep(LOOP_TIME)
+        # simulate that we have to get 5 data samples to compute the outcome
+        moveto('E')
+        client_mvbs.wait_for_server()
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose.position.x = 1.5
+        goal.target_pose.pose.position.y = 8.0
+        goal.target_pose.pose.orientation.w = 1.0
+        result = client_mvbs.send_goal_and_wait(goal)   
+        _set_battery_level_client(20)
+        log_msg = f'Battery Charged.'
+        rospy.loginfo(anm.tag_log(log_msg, LOG_TAG))
+        time.sleep(LOOP_TIME)
+        return 'charged'
 
         
 def main():
+    """
+    The main function for finite_state_machine node, initialises the node defines the subscriner to the ``/image_id`` topic
+    , defines the states and transitions of the finite state machine for topological map and finally 
+    starts the finite state machine process
+    """
     rospy.init_node('finite_state_machine')
 
     global mutex
@@ -605,8 +561,6 @@ def main():
         # Add states to the container
         smach.StateMachine.add('MAP_RECEIVING', Map_Receiving(),
                                transitions={'loaded':'NORMAL'})
-        smach.StateMachine.add('ExploreRoom', ExploreRoom(),
-                               transitions={'explored':'NORMAL'})
                                
         smach.StateMachine.add('NORMAL', Normal(), 
                                transitions={'timeup':'URGENT',
@@ -622,9 +576,6 @@ def main():
                                transitions={'charged':'NORMAL',
                                             'discharged':'BATTERY_LOW'})
 
-
-    #rospy.Subscriber("batterylevel", Bool, callbackbattery)
-    #rospy.ServiceClient(anm.SERVER_GET_BATTERY, GetBattery)
     service = rospy.ServiceProxy(anm.SERVER_GET_BATTERY, GetBattery)
 
 

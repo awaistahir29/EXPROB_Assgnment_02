@@ -2,6 +2,7 @@
 <launch>
 	
 	 <remap from="/my_robot/laser/scan" to="scan"/> 
+   <rosparam param = "state/initial_pose"> [3.5, 1.0] </rosparam>
 	
 	  <!-- these are the arguments you can pass this launch file, for example paused:=true -->
   <arg name="paused" default="false"/>
@@ -102,6 +103,14 @@
    <node pkg="image_view" type="image_view" name="image_view" args = "/image:=/marker_publisher/result"/>
    
    <node pkg="aruco_ros" type="marker_client" name="marker_client"/>
+   
+   <node pkg = "assignment2"  type = "robot_states.py" name = "robot_states"> </node>
+       
+   <node pkg="armor"   type="execute"   name="armor_service"  args="it.emarolab.armor.ARMORMainService" ></node>
+   
+   <node pkg="assignment2" type="mymoveit_node1"  name="mymoveit_node1"></node>
+
+   <node pkg="assignment2" type="state_machine.py"  name="finite_state_machine" launch-prefix="xterm -e"></node>
    
    
    

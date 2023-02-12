@@ -16,10 +16,10 @@ NODE_ROBOT_STATE = 'robot-state'
 SERVER_GET_POSE = 'state/get_pose'
 
 # The name of the server to get the current robot battery level.
-SERVER_GET_BATTERY_LEVEL = 'state/get_battery_level'
+SERVER_GET_BATTERY = 'state/get_battery_level'
 
 # The name of the server to set the current robot battery level. 
-SERVER_SET_BATTERY_LEVEL = 'state/set_battery_level'
+SERVER_SET_BATTERY = 'state/set_battery_level'
 
 
 # The name of the server to set the current robot base movement state. 
@@ -27,7 +27,7 @@ SERVER_SET_BASE_MOVEMENT_STATE = 'state/set_base_movement_state'
 
 # The name of the server to get the current robot base movement state. 
 SERVER_GET_BASE_MOVEMENT_STATE = 'state/get_base_movement_state'
-
+#
 # -------------------------------------------------
 
 

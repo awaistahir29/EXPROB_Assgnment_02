@@ -1,0 +1,10 @@
+####### The service to get the current robot battery
+
+### No service inputs
+
+---
+
+### Service output
+
+# The current robot battery level.
+int32 level 

@@ -4,11 +4,11 @@ import threading
 import random
 import rospy
 # Import constant name defined to structure the architecture.
-from survailence_robot import architecture_name_mapper as anm
+from assignment2 import architecture_name_mapper as anm
 # Import the messages used by services and publishers.
 from std_msgs.msg import Bool
-from survailence_robot.srv import GetPose, GetPoseResponse, SetPose, SetPoseResponse, GetBattery, SetBattery, GetBatteryResponse, SetBatteryResponse
-from survailence_robot.msg import Point
+from assignment2.srv import GetPose, GetPoseResponse, SetPose, SetPoseResponse, GetBattery, SetBattery, GetBatteryResponse, SetBatteryResponse
+from assignment2.msg import Point
 
 
 # A tag for identifying logs producer.

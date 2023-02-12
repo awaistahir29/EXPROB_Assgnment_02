@@ -180,10 +180,7 @@ add_dependencies(marker_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPO
 ## Define runnables.
 catkin_install_python(
   PROGRAMS
-    scripts/planner.py
-    scripts/controller.py
     scripts/robot_states.py
-    scripts/behaviour.py
     scripts/state_machine.py
   DESTINATION 
     ${CATKIN_PACKAGE_BIN_DESTINATION}
