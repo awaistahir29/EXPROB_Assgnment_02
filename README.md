@@ -23,6 +23,11 @@ scanning and patrolling behaviors, is shown in the following figures:
 ## Software Architecture
 The software architucture is represented in the following figure.
 
+<p align="center">
+<img src="assignment2/diagrams/UML_Assignment_02.jpg" width="800" title="sofar">
+</p>
+
+
 The components of this software architucture can be described as follows:
 
 ## Usage
