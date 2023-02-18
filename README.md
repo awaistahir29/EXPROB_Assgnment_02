@@ -5,7 +5,7 @@ ROS package for patrolling an indoor environment with a mobile robot
 
 ## Introduction
 This package is an experiment to use a topological map ontology for controling a robot using ROS. The ontology consists of an indoor environment
-with multiple rooms and a mobile robot. You can get to know more about the detatils of the source code using the provided [documentation](assignment2/build/html/index.html) for this rospackage.
+with multiple rooms and a mobile robot. You can get to know more about the detatils of the source code using the provided [documentation](https://awaistahir29.github.io/EXPROB_Assgnment_02/) for this rospackage.
 
 The robot starts in room E and by scanning the provided markers, it receives the information to build the semantic map, i.e., the name and center 
 position of each room and the connections between them.
