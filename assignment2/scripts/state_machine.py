@@ -55,7 +55,7 @@ get_battery_level = {}
 newLevel = 0
 resp = 0
 
-#client_mvbs = actionlib.SimpleActionClient('move_base',MoveBaseAction)
+client_mvbs = actionlib.SimpleActionClient('move_base',MoveBaseAction)
 
 def _set_battery_level_client(battery_level):
     """
