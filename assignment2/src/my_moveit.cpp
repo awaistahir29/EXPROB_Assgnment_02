@@ -1,5 +1,22 @@
-#include <ros/ros.h>
+/**
+* \file mymoveit.cpp
+* \brief Controller for the turtlesim
+* \author Carmine Recchiuto
+* \version 0.1
+* \date 25/02/2022
+**/
 
+/**
+* \Services: Marker
+*  /DesiredPose 
+*
+* Description:
+* This node impelemnt the service, which has been requested by the finite state machine
+* node. FSM requests the desired positions by requesting which are saved with the certain
+* pose configuration in moveit_setup_assistant.
+* Simply by calling this service will give the goal and help to reach the requested desired positions to scan the markers robustly.
+*/
+#include <ros/ros.h>
 //! MoveIt headers
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>

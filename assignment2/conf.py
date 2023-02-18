@@ -46,26 +46,6 @@ extensions = [
 'breathe'
 ]
 
-highlight_language = 'c++'
-source_suffix = '.rst'
-master_doc = 'index'
-html_theme = 'sphinx_rtd_theme'
-
-# -- Extension configuration -------------------------------------------------
-# -- Options for intersphinx extension ---------------------------------------
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
-# -- Options for todo extension ----------------------------------------------
-# If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
-
-# -- Options for breathe
-breathe_projects = {
-"turtlesim_controller": "_build/xml/"
-}
-breathe_default_project = "turtlesim_controller"
-breathe_default_members = ('members', 'undoc-members')
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -90,3 +70,23 @@ source_suffix = '.rst'
 master_doc = 'index'
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+
+
+# -- Extension configuration -------------------------------------------------
+# -- Options for intersphinx extension ---------------------------------------
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {'https://docs.python.org/': None}
+# -- Options for todo extension ----------------------------------------------
+# If true, `todo` and `todoList` produce output, else they produce nothing.
+todo_include_todos = True
+
+
+
+# -- Options for breathe
+breathe_projects = {
+"EXPROB_Assignment_02": "_build/xml/"
+}
+breathe_default_project = "EXPROB_Assignment_02"
+breathe_default_members = ('members', 'undoc-members')
+

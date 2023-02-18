@@ -37,17 +37,23 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-Rt2_assignment1's documentation!
-********************************
-
 This is the documentation of the EXPROB_Assignment_02 package!
 
 Robot State Module
 =====================
 .. automodule:: scripts.robot_states
-:members:
+	:members:
 
-Finite State Machine
+Finite State Machine Module
+=============================
+.. automodule:: scripts.state_machine
+	:members:
+	
+My Moveit Module
 =====================
-.. automodule:: scripts.finite_state_machine
-:members:
+.. doxyfile:: mymoveit.cpp
+	:project: EXPROB_Assignment_02
+	
+	
+
+

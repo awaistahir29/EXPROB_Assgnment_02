@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scripts.state_machine &mdash; EXPROB_Assignment_02 1.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> EXPROB_Assignment_02
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EXPROB_Assignment_02</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>scripts.state_machine</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scripts.state_machine</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. module:: state_machine</span>
+<span class="sd">	:platform: Unix</span>
+<span class="sd">	:synopsis: Python module for the finite_state_machine</span>
+
+<span class="sd">.. moduleauthor:: Awais Tahir s5174335@studenti.unige.it</span>
+
+<span class="sd">This node implements State Mmachine</span>
+
+<span class="sd">This script handles the main behavior of a robot by using a finite state machine. It waits for the ontology (map) to be built, and then enters a loop that transitions between three states: move_in_corridor, visitroom, and charging.</span>
+
+<span class="sd">In the move_in_corridor state, the robot moves randomly in the corridors and waits for a certain amount of time if the battery is not low and there are no urgent rooms to visit. If the battery is low, the robot transitions to the charging state, in which it stays in room E until the battery is charged. If there is an urgent room to visit while the battery is charged, the robot transitions to the visitroom state and stays there for a certain amount of time.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">import</span> <span class="nn">smach</span>
+<span class="kn">import</span> <span class="nn">smach_ros</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">assignment2.helper</span> <span class="kn">import</span> <span class="n">TopologicalMap</span>
+<span class="kn">from</span> <span class="nn">armor_api.armor_client</span> <span class="kn">import</span> <span class="n">ArmorClient</span>
+<span class="kn">from</span> <span class="nn">assignment2.srv</span> <span class="kn">import</span> <span class="n">GetBattery</span><span class="p">,</span> <span class="n">SetBattery</span>
+<span class="kn">from</span> <span class="nn">assignment2</span> <span class="kn">import</span> <span class="n">architecture_name_mapper</span> <span class="k">as</span> <span class="n">anm</span>
+<span class="kn">from</span> <span class="nn">move_base_msgs.msg</span> <span class="kn">import</span> <span class="n">MoveBaseAction</span><span class="p">,</span> <span class="n">MoveBaseGoal</span>
+<span class="kn">from</span> <span class="nn">assignment2.msg</span> <span class="kn">import</span> <span class="n">Point</span>
+<span class="kn">from</span> <span class="nn">assignment2.srv</span> <span class="kn">import</span> <span class="n">RoomInformation</span>
+<span class="kn">from</span> <span class="nn">std_msgs.msg</span> <span class="kn">import</span> <span class="n">Int32</span>
+<span class="kn">from</span> <span class="nn">assignment2.srv</span> <span class="kn">import</span> <span class="n">Marker</span>
+<span class="kn">import</span> <span class="nn">actionlib</span>
+
+<span class="c1"># Import mutex to manage synchronization among ROS-based threads (i.e., node loop and subscribers)</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Lock</span>
+
+<span class="c1"># A tag for identifying logs producer.</span>
+<span class="n">LOG_TAG</span> <span class="o">=</span> <span class="n">anm</span><span class="o">.</span><span class="n">NODE_FINITE_STATE_MACHINE</span>
+<span class="n">LOOP_TIME</span> <span class="o">=</span> <span class="mi">2</span>
+
+
+<span class="n">pub</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">mutex</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">rooms_id</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">rooms_name</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">rooms_center</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">rooms_connections</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">rooms_doors</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">tm</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">stayinroomtime</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="n">urgentflag</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">sleeptime</span> <span class="o">=</span><span class="mi">2</span>
+<span class="n">batflag</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">get_battery_level</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">newLevel</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1">#client_mvbs = actionlib.SimpleActionClient(&#39;move_base&#39;,MoveBaseAction)</span>
+
+<span class="k">def</span> <span class="nf">_set_battery_level_client</span><span class="p">(</span><span class="n">battery_level</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Service client function for ``/state/set_battery_level`` Update the current robot battery level</span>
+<span class="sd">    stored in the ``robot-state`` node</span>
+<span class="sd">    Args:</span>
+<span class="sd">        battery_level(int)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Eventually, wait for the server to be initialised.</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_BATTERY</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Log service call.</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Set current robot battery level to the `</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_BATTERY</span><span class="si">}</span><span class="s1">` node.&#39;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        <span class="c1"># Call the service and set the current robot position.</span>
+        <span class="n">service</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_BATTERY</span><span class="p">,</span> <span class="n">SetBattery</span><span class="p">)</span>
+        <span class="n">service</span><span class="p">(</span><span class="n">battery_level</span><span class="p">)</span>  <span class="c1"># The `response` is not used.</span>
+    <span class="k">except</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Server cannot set current robot battery level: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">_get_battery_level_client</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Getting the Battery Level Service</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">get_battery_level</span>
+    <span class="k">global</span> <span class="n">resp</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_GET_BATTERY</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Log service call.</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Get current robot battery level to the `</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_GET_BATTERY</span><span class="si">}</span><span class="s1">` node.&#39;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        <span class="c1"># Call the service and set the current robot position.</span>
+        <span class="n">service</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_GET_BATTERY</span><span class="p">,</span> <span class="n">GetBattery</span><span class="p">)</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">service</span><span class="p">()</span>  <span class="c1"># The `response` is not used.</span>
+        <span class="k">return</span> <span class="n">resp</span>
+    <span class="k">except</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Server cannot get current robot battery level: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+
+<div class="viewcode-block" id="cutBattery"><a class="viewcode-back" href="../../index.html#scripts.state_machine.cutBattery">[docs]</a><span class="k">def</span> <span class="nf">cutBattery</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cutting the Battery Level Service</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">newLevel</span>
+    <span class="k">global</span> <span class="n">resp</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">_get_battery_level_client</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
+    <span class="n">newLevel</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">level</span> <span class="o">-</span> <span class="mi">1</span> 
+    <span class="n">_set_battery_level_client</span><span class="p">(</span><span class="n">newLevel</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="findindividual"><a class="viewcode-back" href="../../index.html#scripts.state_machine.findindividual">[docs]</a><span class="k">def</span> <span class="nf">findindividual</span><span class="p">(</span><span class="nb">list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function for finding the individual in a list from the return of a qureied proprity from armor.  </span>
+<span class="sd">    Args:</span>
+<span class="sd">        Individual(list): The individual in the armor resonse format ex. *[&#39;&lt;http://bnc/exp-rob-lab/2022-23#R1&gt;&#39;]*  </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Individual(string): The individual extarcted and changed to a string *ex. &quot;R1&quot;*</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;R1&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;R1&#39;</span>
+        <span class="k">elif</span> <span class="s2">&quot;R2&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;R2&#39;</span>
+        <span class="k">elif</span> <span class="s2">&quot;R3&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;R3&#39;</span>
+        <span class="k">elif</span> <span class="s2">&quot;R4&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;R4&#39;</span>
+        <span class="k">elif</span> <span class="s2">&quot;C1&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;C1&#39;</span>
+        <span class="k">elif</span> <span class="s2">&quot;C2&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;C2&#39;</span>
+        <span class="k">elif</span> <span class="s2">&quot;E&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;E&#39;</span></div>
+
+<span class="k">def</span> <span class="nf">moveto</span><span class="p">(</span><span class="n">location</span><span class="p">):</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">ArmorClient</span><span class="p">(</span><span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="s1">&#39;ontoRef&#39;</span><span class="p">)</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">sync_buffered_reasoner</span><span class="p">()</span>
+
+    <span class="n">is_In</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">)</span>
+    <span class="n">oldlocation</span><span class="o">=</span><span class="n">findindividual</span><span class="p">(</span><span class="n">is_In</span><span class="p">)</span>
+    <span class="n">list5</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;canReach&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">)</span>
+    <span class="n">new_list1</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">string</span> <span class="ow">in</span> <span class="n">list5</span><span class="p">:</span>
+        <span class="n">new_list1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;#&#39;</span> <span class="o">+</span> <span class="s1">&#39;(.+?)&#39;</span><span class="o">+</span><span class="s1">&#39;&gt;&#39;</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;I can reach: &#39;</span><span class="p">,</span> <span class="n">new_list1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The desired Location is: &#39;</span><span class="p">,</span><span class="n">location</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">string</span> <span class="ow">in</span> <span class="n">new_list1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">new_list1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">location</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">oldlocation</span><span class="o">==</span> <span class="s1">&#39;R1&#39;</span> <span class="ow">or</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;R2&#39;</span> <span class="ow">or</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;E&#39;</span> <span class="ow">or</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;C2&#39;</span><span class="p">:</span> 
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Moving from: &quot;</span> <span class="o">+</span> <span class="n">oldlocation</span><span class="p">,</span> <span class="s2">&quot;to: &quot;</span> <span class="o">+</span> <span class="n">location</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">oldlocation</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;R3&#39;</span> <span class="ow">or</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;R4&#39;</span> <span class="ow">or</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;E&#39;</span> <span class="ow">or</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;C1&#39;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Moving from: &quot;</span> <span class="o">+</span> <span class="n">oldlocation</span><span class="p">,</span> <span class="s2">&quot;to: &quot;</span> <span class="o">+</span> <span class="n">location</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">oldlocation</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;C1&#39;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Moving from: &quot;</span> <span class="o">+</span> <span class="n">oldlocation</span><span class="p">,</span> <span class="s2">&quot;to: &quot;</span> <span class="o">+</span> <span class="n">location</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">oldlocation</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;C2&#39;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Moving from: &quot;</span> <span class="o">+</span> <span class="n">oldlocation</span><span class="p">,</span> <span class="s2">&quot;to: &quot;</span> <span class="o">+</span> <span class="n">location</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">oldlocation</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Not Moved&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">sync_buffered_reasoner</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;R1&#39;</span> <span class="ow">or</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;R2&#39;</span> <span class="ow">or</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;R3&#39;</span> <span class="ow">or</span> <span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;R4&#39;</span><span class="p">:</span>
+        <span class="n">old_time</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;now&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">)</span>
+        <span class="n">robot_Now</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">string</span> <span class="ow">in</span> <span class="n">old_time</span><span class="p">:</span>
+            <span class="n">robot_Now</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span> <span class="o">+</span> <span class="s1">&#39;(.+?)&#39;</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The current Now value is: &#39;</span><span class="p">,</span> <span class="n">robot_Now</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;now&#39;</span><span class="p">,</span> <span class="s1">&#39;Robot1&#39;</span><span class="p">,</span> <span class="s1">&#39;Long&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())),</span> <span class="n">robot_Now</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">sync_buffered_reasoner</span><span class="p">()</span> 
+            <span class="n">oldVisitedAt</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;visitedAt&#39;</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
+            <span class="n">VisitedAt</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">string</span> <span class="ow">in</span> <span class="n">oldVisitedAt</span><span class="p">:</span>
+                <span class="n">VisitedAt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span> <span class="o">+</span> <span class="s1">&#39;(.+?)&#39;</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The current VisitedAT of Corrridor 2 is: &#39;</span><span class="p">,</span> <span class="n">VisitedAt</span><span class="p">)</span>
+                <span class="n">ret1</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;visitedAt&#39;</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="s1">&#39;Long&#39;</span><span class="p">,</span> <span class="n">robot_Now</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">VisitedAt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Replaced&quot;</span><span class="p">,</span> <span class="n">ret1</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">sync_buffered_reasoner</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="urgentupdate"><a class="viewcode-back" href="../../index.html#scripts.state_machine.urgentupdate">[docs]</a><span class="k">def</span> <span class="nf">urgentupdate</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function for checking if there is an urgent room to set the global *urgentflag*, also returns the nearby urgent room.  </span>
+<span class="sd">    Args:</span>
+<span class="sd">        void  </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Urgent room(string): The nearby urgent room according to the robot position in the corridors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">urgentflag</span>
+    <span class="n">tobetrturned</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">ArmorClient</span><span class="p">(</span><span class="s2">&quot;example&quot;</span><span class="p">,</span> <span class="s2">&quot;ontoRef&quot;</span><span class="p">)</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s1">&#39;REASON&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,[</span><span class="s1">&#39;&#39;</span><span class="p">])</span>
+    <span class="n">req</span><span class="o">=</span><span class="n">client</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s1">&#39;QUERY&#39;</span><span class="p">,</span><span class="s1">&#39;IND&#39;</span><span class="p">,</span><span class="s1">&#39;CLASS&#39;</span><span class="p">,[</span><span class="s1">&#39;URGENT&#39;</span><span class="p">])</span>
+    <span class="n">req2</span><span class="o">=</span><span class="n">client</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s1">&#39;QUERY&#39;</span><span class="p">,</span><span class="s1">&#39;OBJECTPROP&#39;</span><span class="p">,</span><span class="s1">&#39;IND&#39;</span><span class="p">,[</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span><span class="s1">&#39;Robot1&#39;</span><span class="p">])</span>
+    <span class="n">oldlocation</span><span class="o">=</span><span class="n">findindividual</span><span class="p">(</span><span class="n">req2</span><span class="o">.</span><span class="n">queried_objects</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">req</span><span class="o">.</span><span class="n">queried_objects</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">oldlocation</span><span class="o">==</span><span class="s1">&#39;E&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">moveto</span><span class="p">(</span><span class="s1">&#39;C1&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">moveto</span><span class="p">(</span><span class="s1">&#39;C2&#39;</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s1">&#39;REASON&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,[</span><span class="s1">&#39;&#39;</span><span class="p">])</span>
+            <span class="n">req2</span><span class="o">=</span><span class="n">client</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s1">&#39;QUERY&#39;</span><span class="p">,</span><span class="s1">&#39;OBJECTPROP&#39;</span><span class="p">,</span><span class="s1">&#39;IND&#39;</span><span class="p">,[</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span><span class="s1">&#39;Robot1&#39;</span><span class="p">])</span>
+            <span class="n">oldlocation</span><span class="o">=</span><span class="n">findindividual</span><span class="p">(</span><span class="n">req2</span><span class="o">.</span><span class="n">queried_objects</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;C1&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;R1&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">urgentflag</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">tobetrturned</span> <span class="o">=</span> <span class="s1">&#39;R1&#39;</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="s2">&quot;R2&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">urgentflag</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">tobetrturned</span> <span class="o">=</span> <span class="s1">&#39;R2&#39;</span>
+                <span class="k">break</span>
+        <span class="k">elif</span> <span class="n">oldlocation</span> <span class="o">==</span> <span class="s1">&#39;C2&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;R3&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">urgentflag</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">tobetrturned</span> <span class="o">=</span> <span class="s1">&#39;R3&#39;</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="s2">&quot;R4&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">urgentflag</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">tobetrturned</span> <span class="o">=</span> <span class="s1">&#39;R4&#39;</span>
+                <span class="k">break</span>
+    <span class="k">if</span>  <span class="n">tobetrturned</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
+        <span class="n">urgentflag</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tobetrturned</span></div>
+
+<div class="viewcode-block" id="get_room_info"><a class="viewcode-back" href="../../index.html#scripts.state_machine.get_room_info">[docs]</a><span class="k">def</span> <span class="nf">get_room_info</span><span class="p">(</span><span class="n">room_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Server client for ``marker_server``, gets information for each room using ``room_info`` service</span>
+<span class="sd">        Args: </span>
+<span class="sd">            room_id(int)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            resp(RoomInformationResponse)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="s1">&#39;room_info&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">srv</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="s1">&#39;room_info&#39;</span><span class="p">,</span> <span class="n">RoomInformation</span><span class="p">)</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">srv</span><span class="p">(</span><span class="n">room_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resp</span> 
+    <span class="k">except</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Service call failed: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">e</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="marker_id_callback"><a class="viewcode-back" href="../../index.html#scripts.state_machine.marker_id_callback">[docs]</a><span class="k">def</span> <span class="nf">marker_id_callback</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Callback function for ``/image_id`` topic subscriber. Eveytime an image id is detected, checks </span>
+<span class="sd">        if image id is valuable and not already available, then saves the corresponding information of</span>
+<span class="sd">        each room in the global variables by calling ``get_room_info(room_id)`` function, and modifies</span>
+<span class="sd">        the ontology using ``add_room(room)``, ``add_door(door)``, ``assign_doors_to_room(room, doors)``</span>
+<span class="sd">        ``disjoint_individuals()`` and ``add_last_visit_time(room, visit_time)`` functions from </span>
+<span class="sd">        ``topological_map.py`` helper script.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            data(int32)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">rooms_id</span>
+    <span class="k">global</span> <span class="n">rooms_name</span>
+    <span class="k">global</span> <span class="n">rooms_center</span>
+    <span class="k">global</span> <span class="n">rooms_connections</span>
+    <span class="k">global</span> <span class="n">rooms_doors</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">data</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rooms_id</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">data</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">data</span> <span class="o">&lt;</span> <span class="mi">18</span><span class="p">:</span>
+        <span class="n">rooms_id</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="s1">&#39;Image id detected: </span><span class="si">%d</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="s1">&#39;Number of detected IDs: </span><span class="si">%d</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rooms_id</span><span class="p">))</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        
+        <span class="n">room_info</span> <span class="o">=</span> <span class="n">get_room_info</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">rooms_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">room_info</span><span class="o">.</span><span class="n">room</span><span class="p">)</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="s1">&#39;Semantic map updated, room &#39;</span><span class="o">+</span> <span class="n">room_info</span><span class="o">.</span><span class="n">room</span> <span class="o">+</span> <span class="s1">&#39; detected&#39;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        <span class="c1">#tm.add_room(room_info.room)</span>
+
+        <span class="n">rooms_center</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">room_info</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">room_info</span><span class="o">.</span><span class="n">y</span><span class="p">])</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="s1">&#39;Center position is: [</span><span class="si">%f</span><span class="s1">, </span><span class="si">%f</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">room_info</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">room_info</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">room_info</span><span class="o">.</span><span class="n">connections</span><span class="p">)):</span>
+            <span class="n">rooms_connections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">room_info</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">connected_to</span><span class="p">)</span>
+            <span class="n">rooms_doors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">room_info</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">through_door</span><span class="p">)</span>
+            <span class="n">log_msg</span> <span class="o">=</span> <span class="s1">&#39;Room &#39;</span> <span class="o">+</span> <span class="n">room_info</span><span class="o">.</span><span class="n">room</span> <span class="o">+</span> <span class="s1">&#39; is connected to &#39;</span> <span class="o">+</span> <span class="n">room_info</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">connected_to</span> <span class="o">+</span> <span class="s1">&#39; through door &#39;</span> <span class="o">+</span> <span class="n">room_info</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">through_door</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="get_room_pose"><a class="viewcode-back" href="../../index.html#scripts.state_machine.get_room_pose">[docs]</a><span class="k">def</span> <span class="nf">get_room_pose</span><span class="p">(</span><span class="n">room</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detects the center postion by using the room information for corresponding room</span>
+<span class="sd">    Args:</span>
+<span class="sd">        room(string)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        room_pose(Point)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">rooms_name</span>
+    <span class="k">global</span> <span class="n">rooms_center</span>
+    <span class="n">room_pose</span> <span class="o">=</span> <span class="n">Point</span><span class="p">()</span>
+    <span class="n">room_index</span> <span class="o">=</span> <span class="n">rooms_name</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">room</span><span class="p">)</span>
+    <span class="n">room_pose</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">rooms_center</span><span class="p">[</span><span class="n">room_index</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">room_pose</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">rooms_center</span><span class="p">[</span><span class="n">room_index</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">room_pose</span></div>
+
+<div class="viewcode-block" id="set_arm_movement_state"><a class="viewcode-back" href="../../index.html#scripts.state_machine.set_arm_movement_state">[docs]</a><span class="k">def</span> <span class="nf">set_arm_movement_state</span><span class="p">(</span><span class="n">arm_movement_state</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detects the markers by sending requests after appropriate time</span>
+<span class="sd">    Args:</span>
+<span class="sd">        Boolean: True </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Boolean: True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="s1">&#39;/move_arm&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="s1">&#39;Setting robot arm movement state to &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">arm_movement_state</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        <span class="n">service</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="s1">&#39;move_arm&#39;</span><span class="p">,</span> <span class="n">Marker</span><span class="p">)</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">service</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">message</span> <span class="o">==</span> <span class="s1">&#39;front&#39;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FRONT MOVEMENT SCCCEED</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="n">service</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">message</span> <span class="o">==</span> <span class="s1">&#39;up_right&#39;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;UP_RIGHT MOVEMENT SCCCEED</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">resp</span> <span class="o">=</span> <span class="n">service</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+                <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">message</span> <span class="o">==</span> <span class="s1">&#39;down_right&#39;</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DOWN_RIGHT MOVEMENT SCCCEED</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">resp</span> <span class="o">=</span> <span class="n">service</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+                    <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">message</span> <span class="o">==</span> <span class="s1">&#39;back_left&#39;</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;BACK_LEFT MOVEMENT SCCCEED</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">resp</span> <span class="o">=</span> <span class="n">service</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+                        <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">message</span> <span class="o">==</span> <span class="s1">&#39;initial&#39;</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial MOVEMENT SCCCEED</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+                            <span class="k">return</span> <span class="kc">True</span>
+            
+
+    <span class="k">except</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Server can not set current arm movement state: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span></div>
+
+<span class="c1"># define state Unlocked</span>
+<div class="viewcode-block" id="Map_Receiving"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Map_Receiving">[docs]</a><span class="k">class</span> <span class="nc">Map_Receiving</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># initialisation function, it should not wait</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                             <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;loaded&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="Map_Receiving.execute"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Map_Receiving.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implements the execution of the tasks while this state gets active.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">global</span> <span class="n">tm</span>
+        <span class="n">tm</span> <span class="o">=</span> <span class="n">TopologicalMap</span><span class="p">()</span>
+        <span class="k">global</span> <span class="n">mutex</span>
+        <span class="k">global</span> <span class="n">rooms_id</span>
+        <span class="n">check</span> <span class="o">=</span>  <span class="n">set_arm_movement_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">check</span> <span class="o">==</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>  <span class="c1"># Wait for stimulus from the other nodes of the architecture.</span>
+                <span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The number of rooms are&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rooms_id</span><span class="p">))</span> 
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rooms_id</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="s1">&#39;loaded&#39;</span>
+                <span class="k">finally</span><span class="p">:</span>
+                    <span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+                <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_TIME</span><span class="p">)</span></div></div>
+
+<span class="c1"># define state Locked</span>
+<div class="viewcode-block" id="Normal"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Normal">[docs]</a><span class="k">class</span> <span class="nc">Normal</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+<span class="c1">## The Normal class.The robots keeps moving between C1 and C2 for infinit time, the robots keep cheking the </span>
+<span class="c1"># state of the battery, if the battery is low the robot goes to CHARGING state</span>
+<span class="c1"># trough the transition tired. if the  battery is not low, the robot cheks if there is an urgent room by quering the</span>
+<span class="c1"># individuals of the class urgent. If there is an urgent room the robot goes to URGENT state through the transition</span>
+<span class="c1"># timeup.</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                             <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;discharged&#39;</span><span class="p">,</span><span class="s1">&#39;timeup&#39;</span><span class="p">,</span><span class="s1">&#39;charged&#39;</span><span class="p">,</span><span class="s1">&#39;loaded&#39;</span><span class="p">,</span><span class="s1">&#39;relaxed&#39;</span><span class="p">])</span>
+                            
+        <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Rate</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>  <span class="c1"># Loop at 200 Hz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client1</span> <span class="o">=</span> <span class="n">ArmorClient</span><span class="p">(</span><span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="s1">&#39;ontoRef&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Normal.execute"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Normal.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implements the execution of the tasks while this state gets active.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">global</span> <span class="n">urgentflag</span>
+        <span class="k">global</span> <span class="n">newLevel</span>
+        <span class="n">cutBattery</span><span class="p">()</span>
+        <span class="n">urgentupdate</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The Remaining Battery is: &#39;</span><span class="p">,</span> <span class="n">newLevel</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">newLevel</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;discharged&#39;</span>
+        <span class="k">if</span> <span class="n">urgentflag</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Urgency Occured&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s1">&#39;timeup&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">moveto</span><span class="p">(</span><span class="s1">&#39;C1&#39;</span><span class="p">)</span>
+                <span class="n">client_mvbs</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                <span class="n">goal</span> <span class="o">=</span> <span class="n">MoveBaseGoal</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.5</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">client_mvbs</span><span class="o">.</span><span class="n">send_goal_and_wait</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+                <span class="n">set_arm_movement_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">stayinroomtime</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">moveto</span><span class="p">(</span><span class="s1">&#39;C2&#39;</span><span class="p">)</span>
+                <span class="n">client_mvbs</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                <span class="n">goal</span> <span class="o">=</span> <span class="n">MoveBaseGoal</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">3.5</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">client_mvbs</span><span class="o">.</span><span class="n">send_goal_and_wait</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+                <span class="n">set_arm_movement_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">stayinroomtime</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s1">&#39;charged&#39;</span></div></div>
+
+<span class="c1"># define state Locked</span>
+<div class="viewcode-block" id="Urgent"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Urgent">[docs]</a><span class="k">class</span> <span class="nc">Urgent</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+<span class="c1">## The visting_urgent class.First, the robots checks if the battery is low goes to CHARGING state, else it checkes it the</span>
+<span class="c1"># urgent room is reacheable by quering the object properties of the robot canReach, if the room can be reached it visit it</span>
+<span class="c1"># and return back to the  MOVING_IN_CORRIDORS trough the transition visited. If the urgent room is not reacheable it goes </span>
+<span class="c1"># to MOVING_IN_CORRIDORS state through the transition not_reached, in this case the robot will change the corridors and </span>
+<span class="c1"># visit it again.</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;! A method of the class visiting_urgent</span>
+<span class="sd">           @param userdata</span>
+<span class="sd">           @return  one of its outcomes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                             <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;relaxed&#39;</span><span class="p">,</span><span class="s1">&#39;discharged&#39;</span><span class="p">,</span><span class="s1">&#39;timeup&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Rate</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>  <span class="c1"># Loop at 200 Hz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client1</span> <span class="o">=</span> <span class="n">ArmorClient</span><span class="p">(</span><span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="s1">&#39;ontoRef&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Urgent.execute"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Urgent.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="c1"># simulate that we have to get 5 data samples to compute the outcome</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implements the execution of the tasks while this state gets active.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+         <span class="c1"># simulate that we have to get 5 data samples to compute the outcome</span>
+        <span class="k">global</span> <span class="n">batflag</span>
+        <span class="k">global</span> <span class="n">urgentflag</span>
+        <span class="k">global</span> <span class="n">newLevel</span>
+        <span class="n">cutBattery</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The Remaining Battery is: &#39;</span><span class="p">,</span> <span class="n">newLevel</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">newLevel</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;discharged&#39;</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">ArmorClient</span><span class="p">(</span><span class="s2">&quot;example&quot;</span><span class="p">,</span> <span class="s2">&quot;ontoRef&quot;</span><span class="p">)</span>
+        <span class="n">urgentupdate</span><span class="p">()</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">sleeptime</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">urgentflag</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;relaxed&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">The_urgnet_room</span><span class="o">=</span><span class="n">urgentupdate</span><span class="p">()</span>
+            <span class="n">moveto</span><span class="p">(</span><span class="n">The_urgnet_room</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">The_urgnet_room</span> <span class="o">==</span> <span class="s1">&#39;R1&#39;</span><span class="p">:</span>
+                <span class="n">client_mvbs</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                <span class="n">goal</span> <span class="o">=</span> <span class="n">MoveBaseGoal</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">7.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">3.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">client_mvbs</span><span class="o">.</span><span class="n">send_goal_and_wait</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+                <span class="n">set_arm_movement_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">The_urgnet_room</span> <span class="o">==</span> <span class="s1">&#39;R2&#39;</span><span class="p">:</span>
+                <span class="n">client_mvbs</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                <span class="n">goal</span> <span class="o">=</span> <span class="n">MoveBaseGoal</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">7.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">4.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">client_mvbs</span><span class="o">.</span><span class="n">send_goal_and_wait</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+                <span class="n">set_arm_movement_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">The_urgnet_room</span> <span class="o">==</span> <span class="s1">&#39;R3&#39;</span><span class="p">:</span>
+                <span class="n">client_mvbs</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                <span class="n">goal</span> <span class="o">=</span> <span class="n">MoveBaseGoal</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">9.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">3.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">client_mvbs</span><span class="o">.</span><span class="n">send_goal_and_wait</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+                <span class="n">set_arm_movement_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">The_urgnet_room</span> <span class="o">==</span> <span class="s1">&#39;R4&#39;</span><span class="p">:</span>
+                <span class="n">client_mvbs</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+                <span class="n">goal</span> <span class="o">=</span> <span class="n">MoveBaseGoal</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">9.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">4.0</span>
+                <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">client_mvbs</span><span class="o">.</span><span class="n">send_goal_and_wait</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+                <span class="n">set_arm_movement_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">stayinroomtime</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s1">&#39;timeup&#39;</span></div></div>
+
+<span class="c1"># define state Locked</span>
+<div class="viewcode-block" id="Battery_Low"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Battery_Low">[docs]</a><span class="k">class</span> <span class="nc">Battery_Low</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Defines the state when robot has reached the charger and chargers battery after some time using</span>
+<span class="sd">    ``set_battery_level(battery_level)`` function and then returns ``charged`` transition.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                             <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;charged&#39;</span><span class="p">,</span><span class="s1">&#39;discharged&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">client1</span> <span class="o">=</span> <span class="n">ArmorClient</span><span class="p">(</span><span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="s1">&#39;ontoRef&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Rate</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>  <span class="c1"># Loop at 200 Hz</span>
+
+
+<div class="viewcode-block" id="Battery_Low.execute"><a class="viewcode-back" href="../../index.html#scripts.state_machine.Battery_Low.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implements the execution of the tasks while this state gets active.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># simulate that we have to get 5 data samples to compute the outcome</span>
+        <span class="n">moveto</span><span class="p">(</span><span class="s1">&#39;E&#39;</span><span class="p">)</span>
+        <span class="n">client_mvbs</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">MoveBaseGoal</span><span class="p">()</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mf">1.5</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mf">8.0</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target_pose</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">client_mvbs</span><span class="o">.</span><span class="n">send_goal_and_wait</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>   
+        <span class="n">_set_battery_level_client</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Battery Charged.&#39;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_TIME</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;charged&#39;</span></div></div>
+
+        
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../index.html#scripts.state_machine.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The main function for finite_state_machine node, initialises the node defines the subscriner to the ``/image_id`` topic</span>
+<span class="sd">    , defines the states and transitions of the finite state machine for topological map and finally </span>
+<span class="sd">    starts the finite state machine process</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">init_node</span><span class="p">(</span><span class="s1">&#39;finite_state_machine&#39;</span><span class="p">)</span>
+
+    <span class="k">global</span> <span class="n">mutex</span>
+    <span class="c1"># Get or create a new mutex.</span>
+    <span class="k">if</span> <span class="n">mutex</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mutex</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mutex</span> <span class="o">=</span> <span class="n">mutex</span>
+
+    <span class="c1"># Subscribe image id to get rooms information</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="s1">&#39;/image_id&#39;</span><span class="p">,</span> <span class="n">Int32</span><span class="p">,</span> <span class="n">marker_id_callback</span><span class="p">)</span>
+
+    <span class="c1"># Create a SMACH state machine</span>
+    <span class="n">sm</span> <span class="o">=</span> <span class="n">smach</span><span class="o">.</span><span class="n">StateMachine</span><span class="p">(</span><span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;container_interface&#39;</span><span class="p">])</span>
+    <span class="n">sm</span><span class="o">.</span><span class="n">userdata</span><span class="o">.</span><span class="n">sm_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Open the container</span>
+    <span class="k">with</span> <span class="n">sm</span><span class="p">:</span>
+        <span class="c1"># Add states to the container</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;MAP_RECEIVING&#39;</span><span class="p">,</span> <span class="n">Map_Receiving</span><span class="p">(),</span>
+                               <span class="n">transitions</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;loaded&#39;</span><span class="p">:</span><span class="s1">&#39;NORMAL&#39;</span><span class="p">})</span>
+                               
+        <span class="n">smach</span><span class="o">.</span><span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;NORMAL&#39;</span><span class="p">,</span> <span class="n">Normal</span><span class="p">(),</span> 
+                               <span class="n">transitions</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;timeup&#39;</span><span class="p">:</span><span class="s1">&#39;URGENT&#39;</span><span class="p">,</span>
+                                            <span class="s1">&#39;discharged&#39;</span><span class="p">:</span><span class="s1">&#39;BATTERY_LOW&#39;</span><span class="p">,</span>
+                                            <span class="s1">&#39;charged&#39;</span><span class="p">:</span><span class="s1">&#39;NORMAL&#39;</span><span class="p">,</span> 
+                                            <span class="s1">&#39;loaded&#39;</span><span class="p">:</span><span class="s1">&#39;NORMAL&#39;</span><span class="p">,</span>
+                                            <span class="s1">&#39;relaxed&#39;</span><span class="p">:</span><span class="s1">&#39;NORMAL&#39;</span><span class="p">})</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;URGENT&#39;</span><span class="p">,</span> <span class="n">Urgent</span><span class="p">(),</span> 
+                               <span class="n">transitions</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;relaxed&#39;</span><span class="p">:</span><span class="s1">&#39;NORMAL&#39;</span><span class="p">,</span>
+                                            <span class="s1">&#39;discharged&#39;</span><span class="p">:</span><span class="s1">&#39;BATTERY_LOW&#39;</span><span class="p">,</span>
+                                            <span class="s1">&#39;timeup&#39;</span><span class="p">:</span><span class="s1">&#39;URGENT&#39;</span><span class="p">})</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">StateMachine</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;BATTERY_LOW&#39;</span><span class="p">,</span> <span class="n">Battery_Low</span><span class="p">(),</span> 
+                               <span class="n">transitions</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;charged&#39;</span><span class="p">:</span><span class="s1">&#39;NORMAL&#39;</span><span class="p">,</span>
+                                            <span class="s1">&#39;discharged&#39;</span><span class="p">:</span><span class="s1">&#39;BATTERY_LOW&#39;</span><span class="p">})</span>
+
+    <span class="n">service</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_GET_BATTERY</span><span class="p">,</span> <span class="n">GetBattery</span><span class="p">)</span>
+
+
+    <span class="c1"># Create and start the introspection server for visualization</span>
+    <span class="n">sis</span> <span class="o">=</span> <span class="n">smach_ros</span><span class="o">.</span><span class="n">IntrospectionServer</span><span class="p">(</span><span class="s1">&#39;server_name&#39;</span><span class="p">,</span> <span class="n">sm</span><span class="p">,</span> <span class="s1">&#39;/SM_ROOT&#39;</span><span class="p">)</span>
+    <span class="n">sis</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="c1"># Execute the state machine</span>
+    <span class="n">outcome</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+
+    <span class="c1"># Wait for ctrl-c to stop the application</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">spin</span><span class="p">()</span>
+    <span class="n">sis</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Awais Tahir.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

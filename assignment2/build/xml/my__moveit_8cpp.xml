@@ -1,0 +1,257 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.17">
+  <compounddef id="my__moveit_8cpp" kind="file" language="C++">
+    <compoundname>my_moveit.cpp</compoundname>
+    <includes local="no">ros/ros.h</includes>
+    <includes local="no">moveit/move_group_interface/move_group_interface.h</includes>
+    <includes local="no">moveit/robot_model_loader/robot_model_loader.h</includes>
+    <includes local="no">moveit/robot_model/robot_model.h</includes>
+    <includes local="no">moveit/robot_state/robot_state.h</includes>
+    <includes local="no">assignment2/Marker.h</includes>
+    <incdepgraph>
+      <node id="3">
+        <label>moveit/move_group_interface/move_group_interface.h</label>
+      </node>
+      <node id="4">
+        <label>moveit/robot_model_loader/robot_model_loader.h</label>
+      </node>
+      <node id="7">
+        <label>assignment2/Marker.h</label>
+      </node>
+      <node id="1">
+        <label>src/my_moveit.cpp</label>
+        <link refid="my__moveit_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>moveit/robot_model/robot_model.h</label>
+      </node>
+      <node id="2">
+        <label>ros/ros.h</label>
+      </node>
+      <node id="6">
+        <label>moveit/robot_state/robot_state.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="my__moveit_8cpp_1a401e942526aac47cef94f478182486e7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int position</definition>
+        <argsstring></argsstring>
+        <name>position</name>
+        <initializer>=0</initializer>
+        <briefdescription>
+<para>MoveIt headers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>\Services: Marker /DesiredPose</para>
+<para>Description: This node impelemnt the service, which has been requested by the finite state machine node. FSM requests the desired positions by requesting which are saved with the certain pose configuration in moveit_setup_assistant. Simply by calling this service will give the goal and help to reach the requested desired positions to scan the markers robustly. Global variable to store the current position of the robot arm </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/my_moveit.cpp" line="29" column="5" bodyfile="src/my_moveit.cpp" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="my__moveit_8cpp_1a399e23b8a44aeb0dcd05c27c9d72aa10" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool reach</definition>
+        <argsstring>(assignment2::Marker::Request &amp;req, assignment2::Marker::Response &amp;resp)</argsstring>
+        <name>reach</name>
+        <param>
+          <type>assignment2::Marker::Request &amp;</type>
+          <declname>req</declname>
+        </param>
+        <param>
+          <type>assignment2::Marker::Response &amp;</type>
+          <declname>resp</declname>
+        </param>
+        <briefdescription>
+<para>Service callback function for the move_arm service. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>req</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Service request message. Contains the position to move the arm to. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Service response message. Contains the name of the target position.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True if the service call was successful. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+<para>Check the requested position and set the position variable and response message accordingly</para>
+<para>Set position to 1 and fill out the response message with the name of the target position</para>
+<para>Set position to 2 and fill out the response message with the name of the target position</para>
+<para>Set position to 3 and fill out the response message with the name of the target position</para>
+<para>Set position to 4 and fill out the response message with the name of the target position</para>
+<para>Set position to 5 and fill out the response message with the name of the target position</para>
+<para>Return false if the requested position is not recognized</para>
+        </inbodydescription>
+        <location file="src/my_moveit.cpp" line="40" column="6" bodyfile="src/my_moveit.cpp" bodystart="40" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="my__moveit_8cpp_1a3c04138a5bfe5d72780bb7e82a18e627" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int main</definition>
+        <argsstring>(int argc, char **argv)</argsstring>
+        <name>main</name>
+        <param>
+          <type>int</type>
+          <declname>argc</declname>
+        </param>
+        <param>
+          <type>char **</type>
+          <declname>argv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+<para>Initialize ROS and the node</para>
+<para>Advertise the move_arm service</para>
+<para>Load the robot model</para>
+<para>Set all joint values to their default values</para>
+<para>Set the starting state to the current state of the robot</para>
+<para>Main loop</para>
+<para>Move the arm to the &quot;MR_left&quot; position</para>
+<para>Reset the position variable</para>
+<para>Move the arm to the &quot;home&quot; position</para>
+<para>Reset the position variable</para>
+<para>Move the arm to the &quot;MR_right&quot; position</para>
+<para>Move the arm to the &quot;MR_back&quot; position</para>
+<para>Reset the position variable</para>
+<para>Move the arm to the &quot;stop&quot; position</para>
+<para>Reset the position variable</para>
+        </inbodydescription>
+        <location file="src/my_moveit.cpp" line="78" column="5" bodyfile="src/my_moveit.cpp" bodystart="78" bodyend="146"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="19"><highlight class="preprocessor">#include<sp/>&lt;ros/ros.h&gt;</highlight></codeline>
+<codeline lineno="21"><highlight class="preprocessor">#include<sp/>&lt;moveit/move_group_interface/move_group_interface.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;moveit/robot_model_loader/robot_model_loader.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;moveit/robot_model/robot_model.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;moveit/robot_state/robot_state.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//#include<sp/>&quot;patrol_robot/MarkerRoutine.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;assignment2/Marker.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>position=0;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reach(assignment2::Marker::Request<sp/>&amp;req,<sp/>assignment2::Marker::Response<sp/>&amp;resp){</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal">(req.pos<sp/>==<sp/>1){</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>position=1;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>resp.message<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;front&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(req.pos<sp/>==<sp/>2){<sp/></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>position=2;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>resp.message<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;up_right&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(req.pos<sp/>==<sp/>3){<sp/></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>position=3;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>resp.message<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;down_right&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(req.pos<sp/>==<sp/>4){</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>position=4;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>resp.message<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;back_left&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(req.pos<sp/>==<sp/>5){<sp/></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>position=5;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>resp.message<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;initial&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal">{<sp/></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight></codeline>
+<codeline lineno="75"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>main(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>argc,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal">**<sp/>argv)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>ros::init(argc,<sp/>argv,<sp/></highlight><highlight class="stringliteral">&quot;robot_model_and_robot_state&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>ros::NodeHandle<sp/>nh;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>ros::ServiceServer<sp/>service<sp/>=<sp/>nh.advertiseService(</highlight><highlight class="stringliteral">&quot;move_arm&quot;</highlight><highlight class="normal">,<sp/>reach);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>ros::AsyncSpinner<sp/>spinner(1);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>spinner.start();</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>robot_model_loader::RobotModelLoader<sp/>robot_model_loader(</highlight><highlight class="stringliteral">&quot;robot_description&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>moveit::core::RobotModelPtr&amp;<sp/>kinematic_model<sp/>=<sp/>robot_model_loader.getModel();</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>ROS_INFO(</highlight><highlight class="stringliteral">&quot;Model<sp/>frame:<sp/>%s&quot;</highlight><highlight class="normal">,<sp/>kinematic_model-&gt;getModelFrame().c_str());</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>moveit::core::RobotStatePtr<sp/>kinematic_state(</highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>moveit::core::RobotState(kinematic_model));</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/>kinematic_state-&gt;setToDefaultValues();</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>moveit::core::JointModelGroup*<sp/>joint_model_group<sp/>=<sp/>kinematic_model-&gt;getJointModelGroup(</highlight><highlight class="stringliteral">&quot;arm&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>moveit::planning_interface::MoveGroupInterface<sp/>group(</highlight><highlight class="stringliteral">&quot;arm&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::vector&lt;std::string&gt;&amp;<sp/>joint_names<sp/>=<sp/>joint_model_group-&gt;getVariableNames();</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>group.setStartStateToCurrentState();</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Set<sp/>the<sp/>tolerance<sp/>for<sp/>orientation<sp/>and<sp/>position<sp/>goals</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>group.setGoalOrientationTolerance(1);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>group.setGoalPositionTolerance(1);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal">(ros::ok()){</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(position==1){</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.setNamedTarget(</highlight><highlight class="stringliteral">&quot;front&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.move();</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>position=0;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(position==2){</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.setNamedTarget(</highlight><highlight class="stringliteral">&quot;up_right&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.move();</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>position=0;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(position==3){</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.setNamedTarget(</highlight><highlight class="stringliteral">&quot;down_right&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.move();</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>position=0;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(position==4){</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.setNamedTarget(</highlight><highlight class="stringliteral">&quot;back_left&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.move();</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>position=0;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(position==5){</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.setNamedTarget(</highlight><highlight class="stringliteral">&quot;initial&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>group.move();</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>position=0;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">(0);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="src/my_moveit.cpp"/>
+  </compounddef>
+</doxygen>

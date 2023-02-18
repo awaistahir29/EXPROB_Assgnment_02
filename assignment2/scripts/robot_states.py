@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-
 """
 .. module:: robot_states
-:platform: Unix
-:synopsis: Python module for the robot_states
+	:platform: Unix
+	:synopsis: Python module for the robot_states
 
 .. moduleauthor:: Awais Tahir s5174335@studenti.unige.it
 

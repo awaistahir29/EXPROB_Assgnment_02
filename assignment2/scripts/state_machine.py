@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
-.. module:: finite_state_machine
-:platform: Unix
-:synopsis: Python module for the finite_state_machine
+.. module:: state_machine
+	:platform: Unix
+	:synopsis: Python module for the finite_state_machine
 
 .. moduleauthor:: Awais Tahir s5174335@studenti.unige.it
 
@@ -55,7 +55,7 @@ get_battery_level = {}
 newLevel = 0
 resp = 0
 
-client_mvbs = actionlib.SimpleActionClient('move_base',MoveBaseAction)
+#client_mvbs = actionlib.SimpleActionClient('move_base',MoveBaseAction)
 
 def _set_battery_level_client(battery_level):
     """
